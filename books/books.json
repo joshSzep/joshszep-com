@@ -1,0 +1,88 @@
+{
+    "books": [
+        {
+            "id": "silent-emergence",
+            "title": "Silent Emergence",
+            "description": "",
+            "published_date": "2025-11-14"
+        },
+        {
+            "id": "endless-darkness",
+            "title": "Endless Darkness",
+            "description": "",
+            "published_date": "2025-11-25"
+        },
+        {
+            "id": "home",
+            "title": "Home",
+            "description": "",
+            "published_date": "2025-11-29"
+        },
+        {
+            "id": "bedlam",
+            "title": "Bedlam",
+            "description": "",
+            "published_date": "2025-12-14"
+        },
+        {
+            "id": "shadow-of-babel",
+            "title": "Shadow of Babel",
+            "description": "",
+            "published_date": "2025-11-30"
+        },
+        {
+            "id": "the-long-wake",
+            "title": "The Long Wake",
+            "description": "",
+            "published_date": "2026-01-12"
+        },
+        {
+            "id": "the-two-alexes",
+            "title": "The Two Alexes",
+            "description": "",
+            "published_date": "2026-01-14"
+        },
+        {
+            "id": "there-is-no-they",
+            "title": "There Is No They",
+            "description": "",
+            "published_date": "2026-01-17"
+        },
+        {
+            "id": "watching-the-unborn",
+            "title": "Watching the Unborn",
+            "description": "",
+            "published_date": "2026-01-24"
+        },
+        {
+            "id": "what-it-feels-like-to-be-you",
+            "title": "What It Feels Like to Be You",
+            "description": "",
+            "published_date": "2026-03-13"
+        },
+        {
+            "id": "only-i-can-feel-me",
+            "title": "Only I Can Feel Me",
+            "description": "",
+            "published_date": "2026-03-14"
+        },
+        {
+            "id": "what-it-feels-like-to-be-us",
+            "title": "What It Feels Like to Be Us",
+            "description": "",
+            "published_date": "2026-03-15"
+        },
+        {
+            "id": "the-house-without-walls",
+            "title": "The House Without Walls",
+            "description": "",
+            "published_date": "2026-03-17"
+        },
+        {
+            "id": "the-end-of-inside",
+            "title": "The End of Inside",
+            "description": "",
+            "published_date": "2026-03-20"
+        }
+    ]
+}
