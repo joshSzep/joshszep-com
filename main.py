@@ -20,6 +20,8 @@ SITE_CSS_PATH = ASSETS_DIR / "site.css"
 SITE_JS_PATH = ASSETS_DIR / "site.js"
 REQUIRED_ASSET_PATHS = {
     ASSETS_DIR / "hero-dark.png",
+    ASSETS_DIR / "hero-gif-dark.gif",
+    ASSETS_DIR / "hero-gif-light.gif",
     ASSETS_DIR / "hero-light.png",
     ASSETS_DIR / "icon.png",
     ASSETS_DIR / "photo.jpeg",
@@ -228,7 +230,7 @@ def build_hero_section(introduction: str) -> str:
     introduction_html = render_markdown_html(introduction)
     return f"""
         <section class=\"hero\">
-            <div class=\"hero-visual reveal\"></div>
+            <button class=\"hero-visual reveal\" type=\"button\" aria-pressed=\"false\" aria-label=\"Toggle animated hero image\"></button>
             <div class=\"hero-copy reveal\">
                 {introduction_html}
             </div>

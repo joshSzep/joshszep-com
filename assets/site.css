@@ -9,7 +9,9 @@
     --shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
     --accent: #d4b483;
     --accent-soft: rgba(212, 180, 131, 0.16);
-    --hero-image: url('hero-dark.png');
+    --hero-image-static: url('hero-dark.png');
+    --hero-image-animated: url('hero-gif-dark.gif');
+    --hero-image: var(--hero-image-static);
 }
 
 :root[data-theme="light"] {
@@ -22,7 +24,9 @@
     --shadow: 0 24px 80px rgba(35, 24, 14, 0.1);
     --accent: #6e4422;
     --accent-soft: rgba(110, 68, 34, 0.12);
-    --hero-image: url('hero-light.png');
+    --hero-image-static: url('hero-light.png');
+    --hero-image-animated: url('hero-gif-light.gif');
+    --hero-image: var(--hero-image-static);
 }
 
 * { box-sizing: border-box; }
@@ -233,16 +237,26 @@ h1 {
 }
 
 .hero-visual {
+    appearance: none;
     position: relative;
+    display: block;
+    width: 100%;
     min-height: clamp(20rem, 52vw, 42rem);
+    padding: 0;
     border-radius: 2rem;
     background: linear-gradient(145deg, var(--panel), transparent 70%);
     border: 1px solid var(--line);
     box-shadow: var(--shadow);
     overflow: hidden;
     isolation: isolate;
+    cursor: pointer;
     transform: translateY(0);
     transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.hero-visual:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
 }
 
 .hero-visual::before {
