@@ -3,7 +3,7 @@ import re
 import shutil
 from dataclasses import dataclass
 from datetime import datetime
-from html import escape
+from html import escape, unescape
 from pathlib import Path
 
 import markdown
@@ -14,6 +14,7 @@ OUTPUT_DIR = ROOT / "output"
 ASSETS_DIR = ROOT / "assets"
 BOOKS_DIR = ROOT / "books"
 METADATA_PATH = ROOT / "metadata.json"
+INTRODUCTION_PATH = ROOT / "INTRODUCTION.md"
 PROFILE_README_PATH = ROOT / "joshszep" / "README.md"
 SITE_CSS_PATH = ASSETS_DIR / "site.css"
 SITE_JS_PATH = ASSETS_DIR / "site.js"
@@ -86,10 +87,14 @@ def load_metadata() -> SiteMetadata:
     ]
     books.sort(key=lambda book: book.published_date, reverse=True)
     return SiteMetadata(
-        introduction=raw["introduction"],
+        introduction=load_introduction_markdown(),
         books=books,
         links=links,
     )
+
+
+def load_introduction_markdown() -> str:
+    return INTRODUCTION_PATH.read_text(encoding="utf-8").strip()
 
 
 def load_book_description(book_id: str) -> str:
@@ -111,6 +116,12 @@ def sanitize_profile_markdown(markdown_text: str) -> str:
 
 def render_markdown_html(markdown_text: str) -> str:
     return markdown.markdown(markdown_text, extensions=["extra", "sane_lists"])
+
+
+def markdown_to_plain_text(markdown_text: str) -> str:
+    html = render_markdown_html(markdown_text)
+    text = re.sub(r"<[^>]+>", " ", html)
+    return re.sub(r"\s+", " ", unescape(text)).strip()
 
 
 def render_profile_html(markdown_text: str) -> str:
@@ -214,11 +225,12 @@ def build_header() -> str:
 
 
 def build_hero_section(introduction: str) -> str:
+    introduction_html = render_markdown_html(introduction)
     return f"""
         <section class=\"hero\">
             <div class=\"hero-visual reveal\"></div>
             <div class=\"hero-copy reveal\">
-                <p>{escape(introduction)}</p>
+                {introduction_html}
             </div>
         </section>
     """.strip()
@@ -293,13 +305,14 @@ def build_page_sections(metadata: SiteMetadata, profile_html: str) -> str:
 
 def build_html(metadata: SiteMetadata, profile_html: str) -> str:
     page_sections = build_page_sections(metadata, profile_html)
+    meta_description = markdown_to_plain_text(metadata.introduction)
     return f"""<!DOCTYPE html>
 <html lang=\"en\">
 <head>
     <meta charset=\"utf-8\">
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
     <title>Joshua Szepietowski</title>
-    <meta name=\"description\" content=\"{escape(metadata.introduction)}\">
+    <meta name=\"description\" content=\"{escape(meta_description)}\">
     <link rel=\"icon\" href=\"icon.png\">
     <link rel=\"stylesheet\" href=\"site.css\">
 </head>

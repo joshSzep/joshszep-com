@@ -205,10 +205,31 @@ h1 {
     text-align: center;
 }
 
-.hero-copy > p {
-    margin: 0;
+.hero-copy > :first-child {
+    margin-top: 0;
+}
+
+.hero-copy > :last-child {
+    margin-bottom: 0;
+}
+
+.hero-copy p,
+.hero-copy ul,
+.hero-copy ol {
+    margin: 0 0 0.9rem;
     font-size: clamp(1.15rem, 2vw, 1.4rem);
     color: var(--muted);
+}
+
+.hero-copy ul,
+.hero-copy ol {
+    display: inline-block;
+    text-align: left;
+    padding-left: 1.25rem;
+}
+
+.hero-copy a {
+    color: var(--accent);
 }
 
 .hero-visual {
