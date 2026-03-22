@@ -13,15 +13,15 @@
 }
 
 :root[data-theme="light"] {
-    --bg: #ffffff;
-    --fg: #141414;
-    --muted: rgba(20, 20, 20, 0.64);
-    --line: rgba(20, 20, 20, 0.1);
-    --panel: rgba(20, 20, 20, 0.03);
-    --panel-strong: rgba(20, 20, 20, 0.06);
-    --shadow: 0 24px 80px rgba(20, 20, 20, 0.08);
-    --accent: #7a4b22;
-    --accent-soft: rgba(122, 75, 34, 0.1);
+    --bg: #f6f0e7;
+    --fg: #111111;
+    --muted: rgba(17, 17, 17, 0.74);
+    --line: rgba(17, 17, 17, 0.14);
+    --panel: rgba(255, 255, 255, 0.5);
+    --panel-strong: rgba(255, 255, 255, 0.72);
+    --shadow: 0 24px 80px rgba(35, 24, 14, 0.1);
+    --accent: #6e4422;
+    --accent-soft: rgba(110, 68, 34, 0.12);
     --hero-image: url('hero-light.png');
 }
 
@@ -56,7 +56,7 @@ img {
 
 .page-shell {
     position: relative;
-    overflow: hidden;
+    overflow-x: clip;
 }
 
 .page-shell::before {
