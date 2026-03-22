@@ -1,0 +1,1 @@
+A meteor will end all life in 16 years. How do you spend that time?

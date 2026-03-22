@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 import re
 import shutil
@@ -42,6 +40,10 @@ class Book:
         return f"{self.id}.png"
 
     @property
+    def description_name(self) -> str:
+        return f"{self.id}.md"
+
+    @property
     def launch_url(self) -> str:
         return f"https://{self.id}.joshszep.com"
 
@@ -67,7 +69,7 @@ def load_metadata() -> SiteMetadata:
         Book(
             id=item["id"],
             title=item["title"],
-            description=item.get("description", ""),
+            description=load_book_description(item["id"]),
             published_date=datetime.strptime(item["published_date"], "%Y-%m-%d"),
             published=bool(item.get("published", False)),
         )
@@ -88,6 +90,11 @@ def load_metadata() -> SiteMetadata:
         books=books,
         links=links,
     )
+
+
+def load_book_description(book_id: str) -> str:
+    description_path = BOOKS_DIR / f"{book_id}.md"
+    return description_path.read_text(encoding="utf-8").strip()
 
 
 def sanitize_profile_markdown(markdown_text: str) -> str:
@@ -131,10 +138,10 @@ def copy_required_assets(books: list[Book]) -> None:
 def build_book_cards(books: list[Book]) -> str:
     cards: list[str] = []
     for book in books:
-        status = "Published" if book.published else "Upcoming"
         description = book.description.strip() or (
             "Available now on its launch page." if book.published else "A forthcoming work."
         )
+        description_html = render_markdown_html(description)
         cta = (
             f'<a class="book-link" href="{escape(book.launch_url)}">Visit launch page</a>'
             if book.published
@@ -147,11 +154,8 @@ def build_book_cards(books: list[Book]) -> str:
                     <img src=\"{escape(book.cover_name)}\" alt=\"Cover for {escape(book.title)}\" loading=\"lazy\">
                 </div>
                 <div class=\"book-meta\">
-                    <div class=\"book-meta-top\">
-                        <p class=\"eyebrow\">{escape(status)}</p>
-                    </div>
                     <h3>{escape(book.title)}</h3>
-                    <p class=\"book-description\">{escape(description)}</p>
+                    <div class=\"book-description\">{description_html}</div>
                     {cta}
                 </div>
             </article>

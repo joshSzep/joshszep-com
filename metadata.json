@@ -4,98 +4,84 @@
         {
             "id": "silent-emergence",
             "title": "Silent Emergence",
-            "description": "When stability and human connection are at odds how do we choose to live?",
             "published_date": "2025-11-14",
             "published": false
         },
         {
             "id": "endless-darkness",
             "title": "Endless Darkness",
-            "description": "A boy on a generation ship faces the darkness of space and the darkness within.",
             "published_date": "2025-11-25",
             "published": false
         },
         {
             "id": "home",
             "title": "Home",
-            "description": "A meteor will end all life in 16 years. How do you spend that time?",
             "published_date": "2025-11-29",
             "published": true
         },
         {
             "id": "bedlam",
             "title": "Bedlam",
-            "description": "The rules of physics begin to break. Chaos ensues.",
             "published_date": "2025-12-14",
             "published": false
         },
         {
             "id": "shadow-of-babel",
             "title": "Shadow of Babel",
-            "description": "The human cost of a space elevator construction project.",
             "published_date": "2025-11-30",
             "published": false
         },
         {
             "id": "the-long-wake",
             "title": "The Long Wake",
-            "description": "What if you woke too early on a long cryosleep journey?",
             "published_date": "2026-01-12",
             "published": false
         },
         {
             "id": "the-two-alexes",
             "title": "The Two Alexes",
-            "description": "Unrequitted love in the atmosphere of an unstable star.",
             "published_date": "2026-01-14",
             "published": false
         },
         {
             "id": "there-is-no-they",
             "title": "There Is No They",
-            "description": "What if the universe is teeming with life, but we will never understand it?",
             "published_date": "2026-01-17",
             "published": false
         },
         {
             "id": "watching-the-unborn",
             "title": "Watching the Unborn",
-            "description": "A mother watches her child's eggs through centuries.",
             "published_date": "2026-01-24",
             "published": true
         },
         {
             "id": "what-it-feels-like-to-be-you",
             "title": "What It Feels Like to Be You",
-            "description": "The invention of the Emotion Engine.",
             "published_date": "2026-03-13",
             "published": true
         },
         {
             "id": "only-i-can-feel-me",
             "title": "Only I Can Feel Me",
-            "description": "The resistance to the Emotion Engine.",
             "published_date": "2026-03-14",
             "published": true
         },
         {
             "id": "what-it-feels-like-to-be-us",
             "title": "What It Feels Like to Be Us",
-            "description": "Exploring the collective experience of the Emotion Engine.",
             "published_date": "2026-03-15",
             "published": true
         },
         {
             "id": "the-house-without-walls",
             "title": "The House Without Walls",
-            "description": "The shared dreamscape of the Emotion Engine.",
             "published_date": "2026-03-17",
             "published": true
         },
         {
             "id": "the-end-of-inside",
             "title": "The End of Inside",
-            "description": "The conclusion of the Emotion Engine saga.",
             "published_date": "2026-03-20",
             "published": true
         }

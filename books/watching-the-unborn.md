@@ -1,0 +1,1 @@
+A mother watches her child's eggs through centuries.
