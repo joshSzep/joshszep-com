@@ -319,12 +319,29 @@ h1 {
     border-radius: 1rem;
     overflow: hidden;
     background: var(--panel-strong);
+    transform: translateY(0);
+    transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
 .cover-shell img {
     width: 100%;
     aspect-ratio: 2 / 3;
     object-fit: cover;
+    transform: scale(1);
+    transition: transform 280ms ease;
+}
+
+@media (hover: hover) {
+    .book-card:hover .cover-shell,
+    .book-card:focus-within .cover-shell {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    .book-card:hover .cover-shell img,
+    .book-card:focus-within .cover-shell img {
+        transform: scale(1.025);
+    }
 }
 
 .book-meta {
