@@ -162,6 +162,23 @@ def build_link_cards(links: list[Link]) -> str:
 def build_html(metadata: SiteMetadata, profile_html: str) -> str:
     book_cards = build_book_cards(metadata.books)
     link_cards = build_link_cards(metadata.links)
+    # Render manifesto
+    manifesto_markdown = Path(ROOT / "MANIFESTO.md").read_text(encoding="utf-8")
+    manifesto_html = markdown.markdown(manifesto_markdown, extensions=["extra", "sane_lists"])
+    manifesto_section = f'''
+        <section id="manifesto" style="width:100%;padding:4.5rem 0;">
+            <div class="manifesto-shell" style="max-width:900px;margin:0 auto;">
+                <div class="section-heading reveal">
+                    <div>
+                        <p class="eyebrow">Manifesto</p>
+                    </div>
+                </div>
+                <div class="manifesto-content" style="font-size:1.18rem;line-height:1.7;color:var(--muted);background:var(--panel);border-radius:1.5rem;padding:2.2rem 2.5rem 2.1rem 2.5rem;border:1px solid var(--line);box-shadow:var(--shadow);">
+                    {manifesto_html}
+                </div>
+            </div>
+        </section>
+    '''
     return f"""<!DOCTYPE html>
 <html lang=\"en\">
 <head>
@@ -646,6 +663,8 @@ def build_html(metadata: SiteMetadata, profile_html: str) -> str:
                         <p>{escape(metadata.introduction)}</p>
                     </div>
                 </section>
+
+                {manifesto_section}
 
                 <section id=\"books\">
                     <div class=\"section-heading reveal\">
