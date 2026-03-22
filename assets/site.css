@@ -241,6 +241,8 @@ h1 {
     box-shadow: var(--shadow);
     overflow: hidden;
     isolation: isolate;
+    transform: translateY(0);
+    transition: transform 220ms ease, box-shadow 220ms ease;
 }
 
 .hero-visual::before {
@@ -251,7 +253,8 @@ h1 {
     background-size: cover;
     background-position: center;
     opacity: 0.92;
-    transition: opacity 180ms ease;
+    transform: scale(1);
+    transition: transform 420ms ease, opacity 220ms ease;
 }
 
 .hero-visual::after {
@@ -261,6 +264,18 @@ h1 {
     height: 20%;
     background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.06) 100%);
     mix-blend-mode: multiply;
+}
+
+@media (hover: hover) {
+    .hero-visual:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 30px 92px rgba(0, 0, 0, 0.28);
+    }
+
+    .hero-visual:hover::before {
+        transform: scale(1.02);
+        opacity: 0.97;
+    }
 }
 
 .section-heading {
