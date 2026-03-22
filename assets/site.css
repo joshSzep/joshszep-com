@@ -209,6 +209,26 @@ h1 {
     color: var(--muted);
 }
 
+.manifesto-section {
+    width: 100%;
+}
+
+.manifesto-shell {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.manifesto-content {
+    font-size: 1.18rem;
+    line-height: 1.7;
+    color: var(--muted);
+    background: var(--panel);
+    border-radius: 1.5rem;
+    padding: 2.2rem 2.5rem 2.1rem;
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+}
+
 .book-grid {
     display: grid;
     grid-template-columns: 1fr;

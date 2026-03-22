@@ -173,14 +173,14 @@ def build_link_cards(links: list[Link]) -> str:
 
 def build_manifesto_section(manifesto_html: str) -> str:
     return f'''
-        <section id="manifesto" style="width:100%;padding:4.5rem 0;">
-            <div class="manifesto-shell" style="max-width:900px;margin:0 auto;">
+        <section id="manifesto" class="manifesto-section">
+            <div class="manifesto-shell">
                 <div class="section-heading reveal">
                     <div>
                         <p class="eyebrow">Manifesto</p>
                     </div>
                 </div>
-                <div class="manifesto-content" style="font-size:1.18rem;line-height:1.7;color:var(--muted);background:var(--panel);border-radius:1.5rem;padding:2.2rem 2.5rem 2.1rem 2.5rem;border:1px solid var(--line);box-shadow:var(--shadow);">
+                <div class="manifesto-content">
                     {manifesto_html}
                 </div>
             </div>
