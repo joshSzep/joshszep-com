@@ -284,9 +284,9 @@ h1 {
 
 .book-card {
     display: grid;
-    grid-template-columns: 124px minmax(0, 1fr);
-    gap: 1rem;
-    padding: 1rem;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 1.4rem;
+    padding: 1.25rem;
     border-radius: 1.5rem;
     border: 1px solid var(--line);
     background: linear-gradient(180deg, var(--panel), transparent 140%);
@@ -294,6 +294,7 @@ h1 {
 }
 
 .cover-shell {
+    align-self: start;
     border-radius: 1rem;
     overflow: hidden;
     background: var(--panel-strong);
@@ -568,6 +569,12 @@ h1 {
 
     .book-card {
         grid-template-columns: 1fr;
+    }
+
+    .cover-shell {
+        max-width: 420px;
+        width: 100%;
+        margin: 0 auto;
     }
 
     .hero-visual {
