@@ -1,7 +1,7 @@
 [project]
 name = "joshszep-com"
 version = "0.1.0"
-description = "Add your description here"
+description = "A static site generator for joshszep.com"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = []
