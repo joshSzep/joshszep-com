@@ -29,6 +29,11 @@
 
 html { scroll-behavior: smooth; }
 
+html,
+body {
+    scroll-padding-top: 6.5rem;
+}
+
 body {
     margin: 0;
     min-height: 100vh;
@@ -86,10 +91,24 @@ img {
 }
 
 .topbar {
+    position: sticky;
+    top: 1rem;
+    z-index: 20;
+    padding: 1rem 0 0;
+}
+
+.topbar-inner {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 0 0;
+    gap: 1rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bg) 78%, transparent);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
 
 .wordmark {
@@ -106,6 +125,30 @@ img {
     width: 1.6rem;
     height: 1.6rem;
     border-radius: 0.45rem;
+}
+
+.section-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.section-nav-link {
+    padding: 0.55rem 0.85rem;
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 0.92rem;
+    transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.section-nav-link:hover,
+.section-nav-link:focus-visible {
+    background: var(--panel-strong);
+    color: var(--fg);
+    transform: translateY(-1px);
 }
 
 .theme-toggle {
@@ -424,6 +467,25 @@ h1 {
 }
 
 @media (max-width: 960px) {
+    .topbar-inner {
+        border-radius: 1.75rem;
+        padding: 0.9rem;
+        flex-wrap: wrap;
+    }
+
+    .section-nav {
+        order: 3;
+        width: 100%;
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 0.1rem;
+        scrollbar-width: none;
+    }
+
+    .section-nav::-webkit-scrollbar {
+        display: none;
+    }
+
     .profile-panel {
         grid-template-columns: 1fr;
     }
@@ -439,12 +501,35 @@ h1 {
 }
 
 @media (max-width: 720px) {
+    html,
+    body {
+        scroll-padding-top: 8.5rem;
+    }
+
     section {
         padding: 3.5rem 0;
     }
 
     .topbar {
         padding-top: 0.75rem;
+    }
+
+    .topbar-inner {
+        align-items: flex-start;
+    }
+
+    .wordmark {
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+    }
+
+    .theme-toggle {
+        padding: 0.55rem 0.8rem;
+    }
+
+    .section-nav-link {
+        font-size: 0.88rem;
+        padding: 0.5rem 0.8rem;
     }
 
     .section-heading {

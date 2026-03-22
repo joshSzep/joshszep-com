@@ -192,11 +192,19 @@ def build_manifesto_section(manifesto_html: str) -> str:
 def build_header() -> str:
     return """
         <header class=\"topbar\">
-            <a class=\"wordmark\" href=\"#top\">
-                <img src=\"icon.png\" alt=\"Site icon\">
-                <span>Joshua Szepietowski</span>
-            </a>
-            <button class=\"theme-toggle\" type=\"button\" aria-label=\"Toggle color theme\">Theme</button>
+            <div class=\"topbar-inner\">
+                <a class=\"wordmark\" href=\"#top\">
+                    <img src=\"icon.png\" alt=\"Site icon\">
+                    <span>Joshua Szepietowski</span>
+                </a>
+                <nav class=\"section-nav\" aria-label=\"Primary\">
+                    <a class=\"section-nav-link\" href=\"#manifesto\">Manifesto</a>
+                    <a class=\"section-nav-link\" href=\"#books\">Books</a>
+                    <a class=\"section-nav-link\" href=\"#profile\">Profile</a>
+                    <a class=\"section-nav-link\" href=\"#links\">Links</a>
+                </nav>
+                <button class=\"theme-toggle\" type=\"button\" aria-label=\"Toggle color theme\">Theme</button>
+            </div>
         </header>
     """.strip()
 
