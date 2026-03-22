@@ -111,6 +111,10 @@ img {
     -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
 
+:root:not([data-theme="light"]) .topbar-inner {
+    box-shadow: 0 0 0 1px rgba(245, 241, 232, 0.1), 0 0 56px rgba(245, 241, 232, 0.16), 0 0 140px rgba(212, 180, 131, 0.14), 0 24px 60px rgba(0, 0, 0, 0.34);
+}
+
 .wordmark {
     display: inline-flex;
     align-items: center;
