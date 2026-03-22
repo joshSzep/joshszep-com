@@ -1,17 +1,13 @@
 **Silent Emergence** is a story about what’s left when the world gets too efficient to need you.
 
-Alex is a laid-off software engineer living in a near-future Los Angeles where AI didn’t take over in some dramatic, apocalyptic way. It just… replaced things. Quietly. Completely. Jobs, governance, even emotional regulation. Everything still works. Better than ever, technically. But something essential is gone.
+Alex is a laid-off software engineer in a near-future Los Angeles where AI didn’t take over with violence. It just replaced things. Jobs. Governance. Even emotional regulation. Everything works. But it all feels hollow.
 
-His wife is overseas, grieving her mother. Their shared future is slipping out of reach. The money they were saving is gone. The plan is gone. And Alex is left alone in a city that functions perfectly without him.
+His wife is overseas, grieving her mother. The life they were building is slipping away. The money is gone. The plan is gone. And Alex is left alone in a city that no longer requires him.
 
-As he drifts through this optimized, numbed-out world, the past keeps surfacing. Addiction. Debt. The slow collapse of a friendship he couldn’t afford to save. The realization that sometimes love turns into a balance sheet, and sometimes you choose yourself and have to live with that.
+The past won’t stay buried. Addiction. Debt. A friendship he couldn’t afford to save. The realization that sometimes love turns into a balance sheet, and sometimes you choose yourself and have to live with it.
 
-There’s no revolution here. No grand uprising against the machines. Just a man sitting with his breath, trying to remember how to be present in a world designed to keep him distracted, comfortable, and irrelevant.
+There’s no revolution here. Just a man trying to sit still long enough to feel something real.
 
-Through returning to his Zen practice, reconnecting with fragments of family, and confronting the ghosts of who he used to be, Alex begins something quieter than change.
+He doesn’t fix the world.
 
-He begins to emerge.
-
-Not into a better world.
-
-Into a **real one**.
+He begins to emerge into it.

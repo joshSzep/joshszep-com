@@ -284,7 +284,7 @@ h1 {
 
 .book-card {
     display: grid;
-    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-columns: 360px minmax(0, 1fr);
     gap: 1.4rem;
     padding: 1.25rem;
     border-radius: 1.5rem;
