@@ -19,6 +19,14 @@ METADATA_PATH = ROOT / "metadata.json"
 PROFILE_README_PATH = ROOT / "joshszep" / "README.md"
 SITE_CSS_PATH = ASSETS_DIR / "site.css"
 SITE_JS_PATH = ASSETS_DIR / "site.js"
+REQUIRED_ASSET_PATHS = {
+    ASSETS_DIR / "hero-dark.png",
+    ASSETS_DIR / "hero-light.png",
+    ASSETS_DIR / "icon.png",
+    ASSETS_DIR / "photo.jpeg",
+    SITE_CSS_PATH,
+    SITE_JS_PATH,
+}
 
 
 @dataclass(slots=True)
@@ -111,14 +119,7 @@ def load_manifesto_html() -> str:
 
 def copy_required_assets(books: list[Book]) -> None:
     OUTPUT_DIR.mkdir(exist_ok=True)
-    required_files = {
-        ASSETS_DIR / "hero-dark.png",
-        ASSETS_DIR / "hero-light.png",
-        ASSETS_DIR / "icon.png",
-        ASSETS_DIR / "photo.jpeg",
-        SITE_CSS_PATH,
-        SITE_JS_PATH,
-    }
+    required_files = set(REQUIRED_ASSET_PATHS)
     required_files.update(BOOKS_DIR / book.cover_name for book in books)
 
     for asset_path in required_files:
