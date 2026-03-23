@@ -50,6 +50,10 @@ class Book:
     def launch_url(self) -> str:
         return f"https://{self.id}.joshszep.com"
 
+    @property
+    def repository_url(self) -> str:
+        return f"https://github.com/joshSzep/{self.id}"
+
 
 @dataclass(slots=True)
 class Link:
@@ -155,11 +159,12 @@ def build_book_cards(books: list[Book]) -> str:
             "Available now on its launch page." if book.published else "A forthcoming work."
         )
         description_html = render_markdown_html(description)
-        cta = (
+        launch_cta = (
             f'<a class="book-link" href="{escape(book.launch_url)}">Visit launch page</a>'
             if book.published
             else '<span class="book-link muted">Coming soon</span>'
         )
+        repository_cta = f'<a class="book-link secondary" href="{escape(book.repository_url)}">Source repository</a>'
         cards.append(
             f"""
             <article class=\"book-card\">
@@ -169,7 +174,10 @@ def build_book_cards(books: list[Book]) -> str:
                 <div class=\"book-meta\">
                     <h3>{escape(book.title)}</h3>
                     <div class=\"book-description\">{description_html}</div>
-                    {cta}
+                    <div class=\"book-actions\">
+                        {launch_cta}
+                        {repository_cta}
+                    </div>
                 </div>
             </article>
             """.strip()

@@ -428,6 +428,13 @@ h1 {
     color: var(--accent);
 }
 
+.book-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
 .book-link {
     align-self: start;
     padding: 0.7rem 0.9rem;
@@ -435,6 +442,11 @@ h1 {
     background: var(--accent-soft);
     color: var(--fg);
     border: 1px solid transparent;
+}
+
+.book-link.secondary {
+    background: var(--panel);
+    border-color: var(--line);
 }
 
 .book-link.muted {
