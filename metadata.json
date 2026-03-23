@@ -4,13 +4,13 @@
             "id": "silent-emergence",
             "title": "Silent Emergence",
             "published_date": "2025-11-14",
-            "published": false
+            "published": true
         },
         {
             "id": "endless-darkness",
             "title": "Endless Darkness",
             "published_date": "2025-11-25",
-            "published": false
+            "published": true
         },
         {
             "id": "home",
