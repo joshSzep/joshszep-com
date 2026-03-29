@@ -344,12 +344,18 @@ h1 {
 }
 
 .cover-shell {
+    display: block;
     align-self: start;
     border-radius: 1rem;
     overflow: hidden;
     background: var(--panel-strong);
     transform: translateY(0);
     transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.cover-link:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
 }
 
 .cover-shell img {

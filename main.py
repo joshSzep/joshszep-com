@@ -159,6 +159,14 @@ def build_book_cards(books: list[Book]) -> str:
             "Available now on its launch page." if book.published else "A forthcoming work."
         )
         description_html = render_markdown_html(description)
+        cover_image = (
+            f'<img src="{escape(book.cover_name)}" alt="Cover for {escape(book.title)}" loading="lazy">'
+        )
+        cover_markup = (
+            f'<a class="cover-shell cover-link" href="{escape(book.launch_url)}" aria-label="Open {escape(book.title)} launch page">{cover_image}</a>'
+            if book.published
+            else f'<div class="cover-shell">{cover_image}</div>'
+        )
         launch_cta = (
             f'<a class="book-link" href="{escape(book.launch_url)}">Visit launch page</a>'
             if book.published
@@ -168,9 +176,7 @@ def build_book_cards(books: list[Book]) -> str:
         cards.append(
             f"""
             <article class=\"book-card\">
-                <div class=\"cover-shell\">
-                    <img src=\"{escape(book.cover_name)}\" alt=\"Cover for {escape(book.title)}\" loading=\"lazy\">
-                </div>
+                {cover_markup}
                 <div class=\"book-meta\">
                     <h3>{escape(book.title)}</h3>
                     <div class=\"book-description\">{description_html}</div>
