@@ -25,12 +25,6 @@
             "published": true
         },
         {
-            "id": "shadow-of-babel",
-            "title": "Shadow of Babel",
-            "published_date": "2025-11-30",
-            "published": false
-        },
-        {
             "id": "the-long-wake",
             "title": "The Long Wake",
             "published_date": "2026-01-12",
@@ -83,6 +77,12 @@
             "title": "The End of Inside",
             "published_date": "2026-03-20",
             "published": true
+        },
+        {
+            "id": "where-the-sun-was",
+            "title": "Where the Sun Was",
+            "published_date": "2026-04-02",
+            "published": false
         }
     ],
     "links": [
