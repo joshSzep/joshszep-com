@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Game of Life</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0a0a0a;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #ui-panel {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 10;
+            background: rgba(20, 20, 20, 0.85);
+            padding: 15px 20px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        h2 { margin: 0 0 10px 0; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px;}
+        p { margin: 0 0 15px 0; font-size: 0.9rem; color: #aaa; }
+        .controls { display: flex; gap: 10px; }
+        button {
+            background-color: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        button:hover { background-color: #555; }
+        #canvas-container { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-panel">
+        <h2>3D Game of Life</h2>
+        <p>Rule: Survive 4-5 | Born 5</p>
+        <div class="controls">
+            <button id="btn-toggle">Pause</button>
+            <button id="btn-reset">Randomize</button>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Simulation Logic ---
+        const SIZE = 20; // Creates a 20x20x20 grid (8,000 cells)
+        let grid = new Uint8Array(SIZE * SIZE * SIZE);
+        let nextGrid = new Uint8Array(SIZE * SIZE * SIZE);
+
+        function getIndex(x, y, z) {
+            return x + y * SIZE + z * SIZE * SIZE;
+        }
+
+        function randomizeGrid() {
+            for (let i = 0; i < grid.length; i++) {
+                // ~15% chance for a cell to start alive
+                grid[i] = Math.random() > 0.85 ? 1 : 0; 
+            }
+        }
+
+        function countNeighbors(x, y, z) {
+            let count = 0;
+            // Check all 26 surrounding cells
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dz = -1; dz <= 1; dz++) {
+                        if (dx === 0 && dy === 0 && dz === 0) continue;
+                        
+                        let nx = x + dx;
+                        let ny = y + dy;
+                        let nz = z + dz;
+                        
+                        // Bounded grid (cells outside the grid are dead)
+                        if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE && nz >= 0 && nz < SIZE) {
+                            count += grid[getIndex(nx, ny, nz)];
+                        }
+                    }
+                }
+            }
+            return count;
+        }
+
+        function stepSimulation() {
+            for (let x = 0; x < SIZE; x++) {
+                for (let y = 0; y < SIZE; y++) {
+                    for (let z = 0; z < SIZE; z++) {
+                        let neighbors = countNeighbors(x, y, z);
+                        let idx = getIndex(x, y, z);
+                        let isAlive = grid[idx] === 1;
+
+                        // Apply 3D Rules (Survive 4,5 / Born 5)
+                        if (isAlive) {
+                            nextGrid[idx] = (neighbors === 4 || neighbors === 5) ? 1 : 0;
+                        } else {
+                            nextGrid[idx] = (neighbors === 5) ? 1 : 0;
+                        }
+                    }
+                }
+            }
+            
+            // Swap buffers
+            let temp = grid;
+            grid = nextGrid;
+            nextGrid = temp;
+        }
+
+
+        // --- Three.js Setup ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        // Position camera to look at the entire cube
+        camera.position.set(SIZE * 1.5, SIZE * 1.2, SIZE * 1.5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.set(SIZE / 2, SIZE / 2, SIZE / 2); // Look at center of grid
+        controls.enableDamping = true;
+
+        // Lighting
+        scene.add(new THREE.AmbientLight(0x404040));
+        const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.5);
+        dirLight1.position.set(1, 2, 1);
+        scene.add(dirLight1);
+        
+        const dirLight2 = new THREE.DirectionalLight(0x00ffcc, 0.5);
+        dirLight2.position.set(-1, -1, -1);
+        scene.add(dirLight2);
+
+        // --- Instanced Mesh Setup ---
+        // We use a single geometry and material, drawn thousands of times efficiently
+        const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+        const material = new THREE.MeshPhongMaterial({
+            color: 0x00ffcc,
+            transparent: true,
+            opacity: 0.7,
+            shininess: 100
+        });
+
+        const totalCells = SIZE * SIZE * SIZE;
+        const instancedMesh = new THREE.InstancedMesh(geometry, material, totalCells);
+        scene.add(instancedMesh);
+
+        // A dummy object to calculate matrix transformations for each instance
+        const dummy = new THREE.Object3D();
+
+        function renderGridToMesh() {
+            let instanceIndex = 0;
+            for (let z = 0; z < SIZE; z++) {
+                for (let y = 0; y < SIZE; y++) {
+                    for (let x = 0; x < SIZE; x++) {
+                        let isAlive = grid[getIndex(x, y, z)] === 1;
+                        
+                        dummy.position.set(x, y, z);
+                        
+                        if (isAlive) {
+                            dummy.scale.set(1, 1, 1);
+                        } else {
+                            // Scale down to 0 to "hide" dead cells without removing them
+                            dummy.scale.set(0, 0, 0); 
+                        }
+                        
+                        dummy.updateMatrix();
+                        instancedMesh.setMatrixAt(instanceIndex, dummy.matrix);
+                        instanceIndex++;
+                    }
+                }
+            }
+            // Notify WebGL that the matrices have changed and need re-rendering
+            instancedMesh.instanceMatrix.needsUpdate = true;
+        }
+
+
+        // --- Main Loop & UI ---
+        randomizeGrid();
+        renderGridToMesh();
+
+        let isRunning = true;
+        let lastGenerationTime = 0;
+        const updateIntervalMs = 200; // Speed of simulation
+
+        function animate(timestamp) {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            if (isRunning && (timestamp - lastGenerationTime > updateIntervalMs)) {
+                stepSimulation();
+                renderGridToMesh();
+                lastGenerationTime = timestamp;
+            }
+
+            renderer.render(scene, camera);
+        }
+        
+        requestAnimationFrame(animate);
+
+        // Handle Window Resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // UI Event Listeners
+        const btnToggle = document.getElementById('btn-toggle');
+        btnToggle.addEventListener('click', () => {
+            isRunning = !isRunning;
+            btnToggle.innerText = isRunning ? 'Pause' : 'Play';
+        });
+
+        const btnReset = document.getElementById('btn-reset');
+        btnReset.addEventListener('click', () => {
+            randomizeGrid();
+            renderGridToMesh();
+            lastGenerationTime = performance.now();
+        });
+    </script>
+</body>
+</html>

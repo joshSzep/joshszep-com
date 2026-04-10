@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chronoplasm</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; cursor: none; }
+  canvas { display: block; position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+  #hud {
+    position: fixed; inset: 0; pointer-events: none; z-index: 10;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: space-between; padding: 30px 24px;
+  }
+  #name {
+    font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
+    font-size: clamp(9px, 1.3vw, 15px); font-weight: 300;
+    letter-spacing: 0.75em; color: rgba(255,255,255,0.07);
+    text-transform: uppercase; user-select: none;
+  }
+  #hint {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: clamp(7px, 0.8vw, 9px); letter-spacing: 0.5em;
+    color: rgba(255,255,255,0.1); text-transform: uppercase; user-select: none;
+  }
+  #dot {
+    position: fixed; width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.8); transform: translate(-50%,-50%);
+    pointer-events: none; z-index: 100; mix-blend-mode: screen;
+    top: 0; left: 0; transition: width .15s, height .15s, background .15s;
+    will-change: transform;
+  }
+  #dot.burst { width: 18px; height: 18px; background: rgba(255,200,80,0.95); }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div id="name">Chronoplasm</div>
+  <div id="hint">Move to disturb &nbsp;·&nbsp; Click to ignite</div>
+</div>
+<div id="dot"></div>
+
+<script>
+(function () {
+'use strict';
+
+// ── Bootstrap ────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const dot    = document.getElementById('dot');
+let W = canvas.width  = window.innerWidth;
+let H = canvas.height = window.innerHeight;
+
+const gl = canvas.getContext('webgl2', {
+  antialias: false, alpha: false, powerPreference: 'high-performance'
+});
+if (!gl) {
+  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#444;font:11px/1 courier;letter-spacing:3px">WEBGL2 NOT SUPPORTED</div>';
+  return;
+}
+
+// ── Shader Sources ────────────────────────────────────────────────────────────
+
+const VS_PART = `#version 300 es
+in vec2  a_pos;
+in float a_spd;
+in float a_hue;
+uniform vec2 u_res;
+out float v_spd;
+out float v_hue;
+void main() {
+  vec2 clip = (a_pos / u_res) * 2.0 - 1.0;
+  clip.y = -clip.y;
+  gl_Position = vec4(clip, 0.0, 1.0);
+  gl_PointSize = clamp(1.8 + a_spd * 6.0, 1.0, 11.0);
+  v_spd = a_spd;
+  v_hue = a_hue;
+}`;
+
+const FS_PART = `#version 300 es
+precision highp float;
+in float v_spd;
+in float v_hue;
+out vec4 o;
+
+vec3 hsv2rgb(float h, float s, float v) {
+  h = fract(h);
+  vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+  vec3 p = abs(fract(vec3(h) + K.xyz) * 6.0 - K.www);
+  return v * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), s);
+}
+
+void main() {
+  vec2 uv = gl_PointCoord - 0.5;
+  float d = length(uv) * 2.0;
+  if (d > 1.0) discard;
+
+  // Soft glowing disc
+  float alpha = pow(1.0 - d, 1.5) * (0.35 + v_spd * 0.75);
+
+  // Cool at rest → hot white at speed
+  float h  = v_hue;
+  float s  = 1.0 - v_spd * 0.45;
+  float bv = 0.38 + v_spd * 0.62;
+  vec3 col = hsv2rgb(h, s, bv);
+
+  o = vec4(col, clamp(alpha, 0.0, 1.0));
+}`;
+
+const VS_QUAD = `#version 300 es
+in vec2 a_pos;
+out vec2 v_uv;
+void main() {
+  v_uv = a_pos * 0.5 + 0.5;
+  gl_Position = vec4(a_pos, 0.0, 1.0);
+}`;
+
+// Ping-pong trail: dim + gentle inward spiral
+const FS_TRAIL = `#version 300 es
+precision highp float;
+in vec2 v_uv;
+uniform sampler2D u_tex;
+uniform float u_rot;
+out vec4 o;
+void main() {
+  vec2 c = vec2(0.5);
+  vec2 d = v_uv - c;
+  float ang = u_rot;
+  float ca = cos(ang), sa = sin(ang);
+  vec2 r = vec2(d.x*ca - d.y*sa, d.x*sa + d.y*ca);
+  vec2 uv2 = c + r * 0.9991;
+  vec4 col = texture(u_tex, uv2);
+  col.rgb *= 0.930;
+  o = col;
+}`;
+
+// Separable Gaussian bloom blur
+const FS_BLUR = `#version 300 es
+precision highp float;
+in vec2 v_uv;
+uniform sampler2D u_tex;
+uniform vec2 u_dir;
+out vec4 o;
+void main() {
+  vec2 t = u_dir;
+  vec4 s = vec4(0.0);
+  s += texture(u_tex, v_uv - t*4.0) * 0.028;
+  s += texture(u_tex, v_uv - t*3.0) * 0.066;
+  s += texture(u_tex, v_uv - t*2.0) * 0.124;
+  s += texture(u_tex, v_uv - t*1.0) * 0.180;
+  s += texture(u_tex, v_uv        ) * 0.204;
+  s += texture(u_tex, v_uv + t*1.0) * 0.180;
+  s += texture(u_tex, v_uv + t*2.0) * 0.124;
+  s += texture(u_tex, v_uv + t*3.0) * 0.066;
+  s += texture(u_tex, v_uv + t*4.0) * 0.028;
+  o = s;
+}`;
+
+// Final composite: trail + bloom + tone-map + vignette
+const FS_COMP = `#version 300 es
+precision highp float;
+in vec2 v_uv;
+uniform sampler2D u_trail;
+uniform sampler2D u_bloom;
+out vec4 o;
+void main() {
+  vec3 trail = texture(u_trail, v_uv).rgb;
+  vec3 bloom = texture(u_bloom, v_uv).rgb;
+
+  vec3 col = trail + bloom * 2.4;
+
+  // Reinhard
+  col = col / (col + 1.0);
+  col = pow(col, vec3(0.86));
+
+  // Faint nebula core glow
+  float r = length(v_uv - 0.5);
+  col += vec3(0.006, 0.003, 0.016) * max(0.0, 1.0 - r * 3.2);
+
+  // Vignette
+  col *= 1.0 - r * r * 1.6;
+
+  o = vec4(clamp(col, 0.0, 1.0), 1.0);
+}`;
+
+// ── GL Helpers ────────────────────────────────────────────────────────────────
+
+function shader(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+    console.error(gl.getShaderInfoLog(s), src.slice(0, 200));
+  return s;
+}
+
+function prog(vs, fs) {
+  const p = gl.createProgram();
+  gl.attachShader(p, shader(gl.VERTEX_SHADER, vs));
+  gl.attachShader(p, shader(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS))
+    console.error(gl.getProgramInfoLog(p));
+  return p;
+}
+
+function fbo(w, h) {
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  return { fb, tex, w, h };
+}
+
+function quadVAO(p) {
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const vao = gl.createVertexArray();
+  gl.bindVertexArray(vao);
+  const loc = gl.getAttribLocation(p, 'a_pos');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  gl.bindVertexArray(null);
+  return vao;
+}
+
+function ul(p, n) { return gl.getUniformLocation(p, n); }
+
+// ── Compile Programs ──────────────────────────────────────────────────────────
+
+const pPart  = prog(VS_PART, FS_PART);
+const pTrail = prog(VS_QUAD, FS_TRAIL);
+const pBlur  = prog(VS_QUAD, FS_BLUR);
+const pComp  = prog(VS_QUAD, FS_COMP);
+
+const vaoTrail = quadVAO(pTrail);
+const vaoBlur  = quadVAO(pBlur);
+const vaoComp  = quadVAO(pComp);
+
+// ── Particles ─────────────────────────────────────────────────────────────────
+
+const N    = 24000;
+const px   = new Float32Array(N);
+const py   = new Float32Array(N);
+const pvx  = new Float32Array(N);
+const pvy  = new Float32Array(N);
+const phue = new Float32Array(N);
+const vbo  = new Float32Array(N * 4); // [x, y, spd, hue]
+
+function initP(i) {
+  const rnd = Math.random();
+  const θ = Math.random() * Math.PI * 2;
+  if (rnd < 0.55) {
+    // Orbital ring
+    const r  = 0.08 + Math.random() * 0.28;
+    px[i]    = W * (0.5 + Math.cos(θ) * r);
+    py[i]    = H * (0.5 + Math.sin(θ) * r);
+    const sp = 0.7 + Math.random() * 1.3;
+    pvx[i]   = -Math.sin(θ) * sp;
+    pvy[i]   =  Math.cos(θ) * sp;
+  } else {
+    // Scattered cloud
+    px[i]  = (0.1 + Math.random() * 0.8) * W;
+    py[i]  = (0.1 + Math.random() * 0.8) * H;
+    pvx[i] = (Math.random() - 0.5) * 1.8;
+    pvy[i] = (Math.random() - 0.5) * 1.8;
+  }
+  // Start with cool blues/purples cycling toward warm
+  phue[i] = 0.55 + Math.random() * 0.35;
+}
+for (let i = 0; i < N; i++) initP(i);
+
+// Particle VAO
+const partBuf = gl.createBuffer();
+const partVAO = gl.createVertexArray();
+gl.bindVertexArray(partVAO);
+gl.bindBuffer(gl.ARRAY_BUFFER, partBuf);
+const lp = gl.getAttribLocation(pPart, 'a_pos');
+const ls = gl.getAttribLocation(pPart, 'a_spd');
+const lh = gl.getAttribLocation(pPart, 'a_hue');
+gl.enableVertexAttribArray(lp); gl.vertexAttribPointer(lp, 2, gl.FLOAT, false, 16,  0);
+gl.enableVertexAttribArray(ls); gl.vertexAttribPointer(ls, 1, gl.FLOAT, false, 16,  8);
+gl.enableVertexAttribArray(lh); gl.vertexAttribPointer(lh, 1, gl.FLOAT, false, 16, 12);
+gl.bindVertexArray(null);
+
+// ── Framebuffers ──────────────────────────────────────────────────────────────
+
+let tA, tB, bA, bB, tSrc, tDst;
+
+function makeFBOs() {
+  [tA, tB, bA, bB].forEach(f => {
+    if (f) { gl.deleteFramebuffer(f.fb); gl.deleteTexture(f.tex); }
+  });
+  tA = fbo(W, H); tB = fbo(W, H);
+  bA = fbo(W >> 1, H >> 1);
+  bB = fbo(W >> 1, H >> 1);
+  tSrc = tA; tDst = tB;
+  [tA, tB].forEach(f => {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, f.fb);
+    gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  });
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+makeFBOs();
+
+window.addEventListener('resize', () => {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  makeFBOs();
+  // Nudge stray particles back on screen
+  for (let i = 0; i < N; i++) {
+    if (px[i] < 0 || px[i] > W) px[i] = Math.random() * W;
+    if (py[i] < 0 || py[i] > H) py[i] = Math.random() * H;
+  }
+});
+
+// ── Input ─────────────────────────────────────────────────────────────────────
+
+let mx = -99999, my = -99999;
+const bursts = [];
+
+window.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  dot.style.left = mx + 'px'; dot.style.top = my + 'px';
+});
+
+window.addEventListener('mousedown', e => {
+  dot.classList.add('burst');
+  bursts.push({ x: e.clientX, y: e.clientY, age: 0 });
+});
+window.addEventListener('mouseup', () => dot.classList.remove('burst'));
+
+window.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const t = e.touches[0]; mx = t.clientX; my = t.clientY;
+  dot.style.left = mx + 'px'; dot.style.top = my + 'px';
+}, { passive: false });
+
+window.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  mx = t.clientX; my = t.clientY;
+  bursts.push({ x: mx, y: my, age: 0 });
+});
+
+// ── Flow Field ────────────────────────────────────────────────────────────────
+
+function flowAngle(x, y, t) {
+  const s = 0.0028;
+  return (
+    Math.sin(x * s        + t * 0.20) * Math.cos(y * s        + t * 0.07) * 3.5 +
+    Math.sin(x * s * 0.55 - y * s * 0.72 + t * 0.13) * 2.2 +
+    Math.cos(x * s * 1.7  + y * s * 1.2  - t * 0.25) * 1.1
+  );
+}
+
+// ── Simulation ────────────────────────────────────────────────────────────────
+
+let time = 0;
+
+function update(dt) {
+  time += dt;
+
+  const cx = W * 0.5, cy = H * 0.5;
+
+  for (let i = 0; i < N; i++) {
+    const x = px[i], y = py[i];
+
+    // Curl-like flow field
+    const ang = flowAngle(x, y, time);
+    pvx[i] += Math.cos(ang) * 0.055;
+    pvy[i] += Math.sin(ang) * 0.055;
+
+    // Weak central gravity
+    const gx = cx - x, gy = cy - y;
+    const gd = Math.sqrt(gx*gx + gy*gy) + 1.0;
+    pvx[i] += gx / gd * 0.022;
+    pvy[i] += gy / gd * 0.022;
+
+    // Mouse attraction (gentle pull)
+    if (mx > -9000) {
+      const dx = mx - x, dy = my - y;
+      const d  = Math.sqrt(dx*dx + dy*dy) + 1.0;
+      if (d < 400) {
+        const inf = Math.pow(1.0 - d / 400, 2) * 0.6;
+        pvx[i] += dx / d * inf;
+        pvy[i] += dy / d * inf;
+      }
+    }
+
+    // Click bursts – radial explosion
+    for (let j = 0; j < bursts.length; j++) {
+      const b = bursts[j];
+      const bx = x - b.x, by = y - b.y;
+      const bd = Math.sqrt(bx*bx + by*by) + 1.0;
+      if (bd < 650) {
+        const decay = Math.max(0, 1 - b.age / 0.65);
+        const inf   = Math.pow(Math.max(0, 1 - bd / 650), 1.4) * decay * 26.0;
+        pvx[i] += bx / bd * inf;
+        pvy[i] += by / bd * inf;
+      }
+    }
+
+    // Velocity damping
+    pvx[i] *= 0.963;
+    pvy[i] *= 0.963;
+
+    // Integrate
+    px[i] += pvx[i];
+    py[i] += pvy[i];
+
+    // Wraparound
+    if (px[i] < -80)     px[i] += W + 160;
+    else if (px[i] > W + 80) px[i] -= W + 160;
+    if (py[i] < -80)     py[i] += H + 160;
+    else if (py[i] > H + 80) py[i] -= H + 160;
+
+    // Speed → color
+    const sp = Math.sqrt(pvx[i]*pvx[i] + pvy[i]*pvy[i]);
+    phue[i] = (phue[i] + 0.00085 + sp * 0.00042) % 1.0;
+
+    const b4 = i * 4;
+    vbo[b4    ] = px[i];
+    vbo[b4 + 1] = py[i];
+    vbo[b4 + 2] = Math.min(sp / 3.8, 1.0);
+    vbo[b4 + 3] = phue[i];
+  }
+
+  // Age bursts
+  for (let j = bursts.length - 1; j >= 0; j--) {
+    bursts[j].age += dt;
+    if (bursts[j].age > 1.2) bursts.splice(j, 1);
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+// Slowly-varying rotation for trail spiral
+let rotAcc = 0;
+
+function render() {
+  rotAcc += 0.000022; // accumulate tiny rotation per frame
+
+  // ① Trail feedback: tSrc → tDst  (dim + rotate + contract)
+  gl.bindFramebuffer(gl.FRAMEBUFFER, tDst.fb);
+  gl.viewport(0, 0, W, H);
+  gl.useProgram(pTrail);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, tSrc.tex);
+  gl.uniform1i(ul(pTrail, 'u_tex'), 0);
+  gl.uniform1f(ul(pTrail, 'u_rot'), rotAcc);
+  gl.disable(gl.BLEND);
+  gl.bindVertexArray(vaoTrail);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.bindVertexArray(null);
+
+  // ② Particles → tDst  (additive blend on top of trail)
+  gl.bindBuffer(gl.ARRAY_BUFFER, partBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, vbo, gl.DYNAMIC_DRAW);
+
+  gl.useProgram(pPart);
+  gl.uniform2f(ul(pPart, 'u_res'), W, H);
+  gl.enable(gl.BLEND);
+  gl.blendEquation(gl.FUNC_ADD);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE); // additive → glow
+
+  gl.bindVertexArray(partVAO);
+  gl.drawArrays(gl.POINTS, 0, N);
+  gl.bindVertexArray(null);
+  gl.disable(gl.BLEND);
+
+  // Swap ping-pong
+  const tmp = tSrc; tSrc = tDst; tDst = tmp;
+
+  // ③ Bloom – horizontal blur: tSrc → bA
+  gl.bindFramebuffer(gl.FRAMEBUFFER, bA.fb);
+  gl.viewport(0, 0, bA.w, bA.h);
+  gl.useProgram(pBlur);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, tSrc.tex);
+  gl.uniform1i(ul(pBlur, 'u_tex'), 0);
+  gl.uniform2f(ul(pBlur, 'u_dir'), 3.0 / W, 0.0);
+  gl.bindVertexArray(vaoBlur);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  // Bloom – vertical blur: bA → bB
+  gl.bindFramebuffer(gl.FRAMEBUFFER, bB.fb);
+  gl.bindTexture(gl.TEXTURE_2D, bA.tex);
+  gl.uniform2f(ul(pBlur, 'u_dir'), 0.0, 3.0 / H);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.bindVertexArray(null);
+
+  // ④ Composite to screen
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, W, H);
+  gl.useProgram(pComp);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, tSrc.tex);
+  gl.uniform1i(ul(pComp, 'u_trail'), 0);
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, bB.tex);
+  gl.uniform1i(ul(pComp, 'u_bloom'), 1);
+  gl.bindVertexArray(vaoComp);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.bindVertexArray(null);
+}
+
+// ── Loop ──────────────────────────────────────────────────────────────────────
+
+let last = 0;
+function frame(ts) {
+  const dt = Math.min((ts - last) / 1000, 0.05);
+  last = ts;
+  update(dt);
+  render();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(ts => { last = ts; requestAnimationFrame(frame); });
+
+})();
+</script>
+</body>
+</html>

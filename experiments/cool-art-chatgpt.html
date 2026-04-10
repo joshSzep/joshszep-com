@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Abstract WebGL Bloom Field</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --fg: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.6);
+      --panel: rgba(8,10,18,0.42);
+      --border: rgba(255,255,255,0.12);
+      --shadow: rgba(0,0,0,0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #02030a;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+
+    .hud {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 10;
+      width: min(360px, calc(100vw - 32px));
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--panel);
+      backdrop-filter: blur(16px) saturate(150%);
+      -webkit-backdrop-filter: blur(16px) saturate(150%);
+      box-shadow: 0 14px 40px var(--shadow);
+      user-select: none;
+    }
+
+    .title {
+      margin: 0 0 4px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--fg);
+    }
+
+    .subtitle {
+      margin: 0 0 10px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      color: var(--fg);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    .footer {
+      margin-top: 10px;
+      font-size: 11px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      font-size: 11px;
+      color: var(--fg);
+    }
+
+    .hint {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 10;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(8,10,18,0.34);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--muted);
+      font-size: 11px;
+      box-shadow: 0 10px 24px var(--shadow);
+      user-select: none;
+    }
+
+    @media (max-width: 640px) {
+      .hud {
+        top: 12px;
+        left: 12px;
+        width: min(320px, calc(100vw - 24px));
+        padding: 12px 14px;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .hint {
+        right: 12px;
+        bottom: 12px;
+        max-width: calc(100vw - 24px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <p class="title">Bloom Field</p>
+    <p class="subtitle">
+      An interactive WebGL abstract piece. Move your mouse to bend the field. Click to pulse it. Change modes to mutate the visual language.
+    </p>
+    <div class="controls">
+      <button id="paletteBtn">Palette</button>
+      <button id="modeBtn">Mode</button>
+      <button id="motionBtn">Motion: On</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+    <div class="footer">
+      Press <strong>Space</strong> to toggle autoplay. Press <strong>F</strong> for fullscreen.
+      <div class="badge" id="status">Palette 1 · Mode 1</div>
+    </div>
+  </div>
+
+  <div class="hint">Drag, move, click, and let it breathe.</div>
+  <canvas id="gl"></canvas>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('gl');
+      const gl = canvas.getContext('webgl', {
+        antialias: false,
+        alpha: false,
+        depth: false,
+        stencil: false,
+        preserveDrawingBuffer: false,
+        premultipliedAlpha: false,
+      });
+
+      if (!gl) {
+        document.body.innerHTML = '<div style="display:grid;place-items:center;width:100vw;height:100vh;background:#02030a;color:white;font-family:sans-serif;padding:24px;text-align:center">Your browser does not support WebGL for this piece.</div>';
+        return;
+      }
+
+      const vertexSource = `
+        attribute vec2 a_position;
+        varying vec2 v_uv;
+        void main() {
+          v_uv = a_position * 0.5 + 0.5;
+          gl_Position = vec4(a_position, 0.0, 1.0);
+        }
+      `;
+
+      const fragmentSource = `
+        precision highp float;
+
+        varying vec2 v_uv;
+        uniform vec2 u_resolution;
+        uniform vec2 u_mouse;
+        uniform vec2 u_drift;
+        uniform float u_time;
+        uniform float u_click;
+        uniform float u_palette;
+        uniform float u_mode;
+        uniform float u_motion;
+
+        #define PI 3.14159265359
+
+        mat2 rot(float a) {
+          float c = cos(a);
+          float s = sin(a);
+          return mat2(c, -s, s, c);
+        }
+
+        float hash21(vec2 p) {
+          p = fract(p * vec2(123.34, 345.45));
+          p += dot(p, p + 34.23);
+          return fract(p.x * p.y);
+        }
+
+        float noise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          float a = hash21(i);
+          float b = hash21(i + vec2(1.0, 0.0));
+          float c = hash21(i + vec2(0.0, 1.0));
+          float d = hash21(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+
+        float fbm(vec2 p) {
+          float v = 0.0;
+          float a = 0.5;
+          for (int i = 0; i < 6; i++) {
+            v += a * noise(p);
+            p = rot(0.45) * p * 2.03 + vec2(1.7, 3.1);
+            a *= 0.52;
+          }
+          return v;
+        }
+
+        float ridged(vec2 p) {
+          float v = 0.0;
+          float a = 0.5;
+          for (int i = 0; i < 5; i++) {
+            float n = noise(p);
+            v += abs(n * 2.0 - 1.0) * a;
+            p = rot(0.7) * p * 2.18 + vec2(2.1, 0.7);
+            a *= 0.56;
+          }
+          return v;
+        }
+
+        vec3 paletteA(float t) {
+          vec3 a = vec3(0.5, 0.5, 0.55);
+          vec3 b = vec3(0.5, 0.5, 0.45);
+          vec3 c = vec3(1.0, 0.7, 0.8);
+          vec3 d = vec3(0.05, 0.15, 0.25);
+          return a + b * cos(6.28318 * (c * t + d));
+        }
+
+        vec3 paletteB(float t) {
+          vec3 a = vec3(0.42, 0.42, 0.48);
+          vec3 b = vec3(0.55, 0.45, 0.35);
+          vec3 c = vec3(0.8, 0.9, 1.0);
+          vec3 d = vec3(0.18, 0.05, 0.12);
+          return a + b * cos(6.28318 * (c * t + d));
+        }
+
+        vec3 paletteC(float t) {
+          vec3 a = vec3(0.45, 0.45, 0.45);
+          vec3 b = vec3(0.45, 0.35, 0.55);
+          vec3 c = vec3(1.0, 0.8, 0.65);
+          vec3 d = vec3(0.32, 0.22, 0.08);
+          return a + b * cos(6.28318 * (c * t + d));
+        }
+
+        vec3 getPalette(float t, float idx) {
+          if (idx < 1.5) return paletteA(t);
+          if (idx < 2.5) return paletteB(t);
+          return paletteC(t);
+        }
+
+        float fieldModeA(vec2 p, vec2 m, float t) {
+          vec2 q = p;
+          q += 0.22 * vec2(fbm(p * 1.1 + t * 0.10), fbm(p * 1.2 - t * 0.12));
+          q += 0.14 * sin(vec2(q.y, q.x) * 4.0 + t + m.x * 3.0);
+          float rings = sin(length(q - m * 0.8) * 18.0 - t * 2.2 + u_click * 5.0);
+          float flow = fbm(q * 1.8 + vec2(0.0, t * 0.15));
+          return flow + rings * 0.25;
+        }
+
+        float fieldModeB(vec2 p, vec2 m, float t) {
+          vec2 q = p * rot(t * 0.09);
+          float a = atan(q.y - m.y * 0.6, q.x - m.x * 0.6);
+          float r = length(q - m * 0.45);
+          float spiral = sin(a * 8.0 + log(r + 0.08) * 9.0 - t * 2.8);
+          float grain = ridged(q * 2.4 + spiral * 0.3 + t * 0.05);
+          return grain + spiral * 0.35 - r * 0.15;
+        }
+
+        float fieldModeC(vec2 p, vec2 m, float t) {
+          vec2 q = p;
+          q *= 1.0 + 0.2 * sin(t * 0.3 + length(q) * 3.0);
+          q += m * 0.35;
+          vec2 cell = vec2(fbm(q * 2.8 + t * 0.12), fbm(q * 2.8 - t * 0.10));
+          float net = sin((q.x + cell.x * 1.3) * 14.0) * sin((q.y + cell.y * 1.3) * 14.0);
+          float bloom = smoothstep(0.15, -0.1, abs(net) - 0.18);
+          float haze = fbm(q * 1.4 - cell * 2.0 + t * 0.05);
+          return haze + bloom * 0.9;
+        }
+
+        void main() {
+          vec2 uv = v_uv;
+          vec2 p = (uv - 0.5) * 2.0;
+          p.x *= u_resolution.x / u_resolution.y;
+
+          vec2 mouse = (u_mouse - 0.5) * 2.0;
+          mouse.x *= u_resolution.x / u_resolution.y;
+
+          vec2 drift = (u_drift - 0.5) * 2.0;
+          drift.x *= u_resolution.x / u_resolution.y;
+
+          float t = u_time;
+          float motion = u_motion;
+          vec2 guide = mix(mouse, drift, motion);
+
+          float vignette = smoothstep(1.8, 0.15, length(p));
+          float warp = fbm(p * 1.0 + guide * 0.6 + t * 0.05);
+          p += 0.17 * vec2(cos(warp * 6.0 + t), sin(warp * 6.0 - t));
+
+          float f;
+          if (u_mode < 1.5) {
+            f = fieldModeA(p, guide, t);
+          } else if (u_mode < 2.5) {
+            f = fieldModeB(p, guide, t);
+          } else {
+            f = fieldModeC(p, guide, t);
+          }
+
+          float n1 = fbm(p * 3.2 - t * 0.06);
+          float n2 = ridged(p * 2.1 + t * 0.04 + guide * 0.7);
+          float energy = f * 0.65 + n1 * 0.55 + n2 * 0.4;
+
+          float shimmer = 0.5 + 0.5 * sin(12.0 * energy + t * 1.3 + u_click * 6.0);
+          float glow = pow(max(0.0, 1.0 - abs(energy - 0.55) * 1.8), 3.0);
+          float filaments = pow(max(0.0, shimmer), 10.0) * (0.35 + glow);
+          float halo = exp(-3.4 * length(p - guide * 0.18)) * (0.35 + u_click * 0.6);
+
+          float paletteT = energy * 0.75 + shimmer * 0.25 + glow * 0.2;
+          vec3 col = getPalette(paletteT, u_palette);
+          col *= 0.75 + glow * 0.9;
+          col += getPalette(paletteT + 0.23, u_palette) * filaments * 1.2;
+          col += getPalette(paletteT + 0.45, u_palette) * halo * 0.7;
+
+          float grain = (hash21(gl_FragCoord.xy + t) - 0.5) * 0.035;
+          col += grain;
+
+          col *= vignette;
+          col = pow(col, vec3(0.92));
+          col = clamp(col, 0.0, 1.0);
+
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `;
+
+      function createShader(type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          const info = gl.getShaderInfoLog(shader);
+          gl.deleteShader(shader);
+          throw new Error(info || 'Shader compilation failed');
+        }
+        return shader;
+      }
+
+      function createProgram(vsSource, fsSource) {
+        const program = gl.createProgram();
+        const vs = createShader(gl.VERTEX_SHADER, vsSource);
+        const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
+        gl.attachShader(program, vs);
+        gl.attachShader(program, fs);
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+          const info = gl.getProgramInfoLog(program);
+          gl.deleteProgram(program);
+          throw new Error(info || 'Program link failed');
+        }
+        gl.deleteShader(vs);
+        gl.deleteShader(fs);
+        return program;
+      }
+
+      let program;
+      try {
+        program = createProgram(vertexSource, fragmentSource);
+      } catch (err) {
+        document.body.innerHTML = `<div style="display:grid;place-items:center;width:100vw;height:100vh;background:#02030a;color:white;font-family:sans-serif;padding:24px;text-align:center;white-space:pre-wrap">${err.message}</div>`;
+        return;
+      }
+
+      const positionBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([
+          -1, -1,
+           1, -1,
+          -1,  1,
+          -1,  1,
+           1, -1,
+           1,  1,
+        ]),
+        gl.STATIC_DRAW
+      );
+
+      const aPosition = gl.getAttribLocation(program, 'a_position');
+      const uResolution = gl.getUniformLocation(program, 'u_resolution');
+      const uMouse = gl.getUniformLocation(program, 'u_mouse');
+      const uDrift = gl.getUniformLocation(program, 'u_drift');
+      const uTime = gl.getUniformLocation(program, 'u_time');
+      const uClick = gl.getUniformLocation(program, 'u_click');
+      const uPalette = gl.getUniformLocation(program, 'u_palette');
+      const uMode = gl.getUniformLocation(program, 'u_mode');
+      const uMotion = gl.getUniformLocation(program, 'u_motion');
+
+      const state = {
+        mouseX: 0.5,
+        mouseY: 0.5,
+        targetX: 0.5,
+        targetY: 0.5,
+        driftX: 0.5,
+        driftY: 0.5,
+        clickPulse: 0,
+        palette: 1,
+        mode: 1,
+        autoMotion: 1,
+        start: performance.now(),
+      };
+
+      const status = document.getElementById('status');
+      const paletteBtn = document.getElementById('paletteBtn');
+      const modeBtn = document.getElementById('modeBtn');
+      const motionBtn = document.getElementById('motionBtn');
+      const resetBtn = document.getElementById('resetBtn');
+
+      function updateStatus() {
+        status.textContent = `Palette ${state.palette} · Mode ${state.mode}`;
+        motionBtn.textContent = `Motion: ${state.autoMotion ? 'On' : 'Off'}`;
+      }
+
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const width = Math.floor(window.innerWidth * dpr);
+        const height = Math.floor(window.innerHeight * dpr);
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
+          gl.viewport(0, 0, width, height);
+        }
+      }
+
+      function pointerToUV(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: (clientX - rect.left) / rect.width,
+          y: 1 - (clientY - rect.top) / rect.height,
+        };
+      }
+
+      function setPointer(clientX, clientY) {
+        const p = pointerToUV(clientX, clientY);
+        state.targetX = Math.max(0, Math.min(1, p.x));
+        state.targetY = Math.max(0, Math.min(1, p.y));
+      }
+
+      window.addEventListener('resize', resize);
+      resize();
+
+      window.addEventListener('mousemove', (event) => {
+        setPointer(event.clientX, event.clientY);
+      });
+
+      window.addEventListener('touchmove', (event) => {
+        const t = event.touches[0];
+        if (t) setPointer(t.clientX, t.clientY);
+      }, { passive: true });
+
+      function pulse() {
+        state.clickPulse = 1.0;
+      }
+
+      window.addEventListener('mousedown', pulse);
+      window.addEventListener('touchstart', pulse, { passive: true });
+
+      paletteBtn.addEventListener('click', () => {
+        state.palette = state.palette % 3 + 1;
+        updateStatus();
+      });
+
+      modeBtn.addEventListener('click', () => {
+        state.mode = state.mode % 3 + 1;
+        updateStatus();
+      });
+
+      motionBtn.addEventListener('click', () => {
+        state.autoMotion = state.autoMotion ? 0 : 1;
+        updateStatus();
+      });
+
+      resetBtn.addEventListener('click', () => {
+        state.palette = 1;
+        state.mode = 1;
+        state.autoMotion = 1;
+        state.targetX = 0.5;
+        state.targetY = 0.5;
+        state.mouseX = 0.5;
+        state.mouseY = 0.5;
+        state.clickPulse = 1.0;
+        updateStatus();
+      });
+
+      window.addEventListener('keydown', async (event) => {
+        if (event.code === 'Space') {
+          event.preventDefault();
+          state.autoMotion = state.autoMotion ? 0 : 1;
+          updateStatus();
+        } else if (event.key === 'f' || event.key === 'F') {
+          if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen?.();
+          } else {
+            await document.exitFullscreen?.();
+          }
+        } else if (event.key === 'p' || event.key === 'P') {
+          state.palette = state.palette % 3 + 1;
+          updateStatus();
+        } else if (event.key === 'm' || event.key === 'M') {
+          state.mode = state.mode % 3 + 1;
+          updateStatus();
+        }
+      });
+
+      updateStatus();
+
+      function render(now) {
+        resize();
+
+        const t = (now - state.start) * 0.001;
+
+        if (state.autoMotion) {
+          state.driftX = 0.5 + 0.27 * Math.cos(t * 0.31) + 0.08 * Math.sin(t * 0.93);
+          state.driftY = 0.5 + 0.27 * Math.sin(t * 0.23) + 0.09 * Math.cos(t * 0.71);
+          state.driftX = Math.max(0, Math.min(1, state.driftX));
+          state.driftY = Math.max(0, Math.min(1, state.driftY));
+        } else {
+          state.driftX = state.mouseX;
+          state.driftY = state.mouseY;
+        }
+
+        state.mouseX += (state.targetX - state.mouseX) * 0.08;
+        state.mouseY += (state.targetY - state.mouseY) * 0.08;
+        state.clickPulse *= 0.965;
+
+        gl.useProgram(program);
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.enableVertexAttribArray(aPosition);
+        gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+        gl.uniform2f(uResolution, canvas.width, canvas.height);
+        gl.uniform2f(uMouse, state.mouseX, state.mouseY);
+        gl.uniform2f(uDrift, state.driftX, state.driftY);
+        gl.uniform1f(uTime, t);
+        gl.uniform1f(uClick, state.clickPulse);
+        gl.uniform1f(uPalette, state.palette);
+        gl.uniform1f(uMode, state.mode);
+        gl.uniform1f(uMotion, state.autoMotion);
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        requestAnimationFrame(render);
+      }
+
+      requestAnimationFrame(render);
+    })();
+  </script>
+</body>
+</html>
