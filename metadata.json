@@ -89,6 +89,12 @@
             "title": "When We Were Needed",
             "published_date": "2026-04-29",
             "published": true
+        },
+        {
+            "id": "proof-of-human",
+            "title": "Proof of Human",
+            "published_date": "2026-05-14",
+            "published": false
         }
     ],
     "links": [
