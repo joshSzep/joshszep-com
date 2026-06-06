@@ -171,7 +171,7 @@ def build_book_cards(books: list[Book]) -> str:
             title_markup = f"""
                     <div class=\"book-meta-top\">
                         <h3>{escape(book.title)}</h3>
-                        <p class=\"section-kicker\"><strong>Not yet published</strong> - GitHub repo</p>
+                        <p class=\"book-status\"><strong>Under construction</strong> - GitHub repo</p>
                     </div>
             """.strip()
         cover_image = (
