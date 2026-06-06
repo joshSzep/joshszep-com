@@ -50,10 +50,6 @@ class Book:
     def launch_url(self) -> str:
         return f"https://{self.id}.joshszep.com"
 
-    @property
-    def repository_url(self) -> str:
-        return f"https://github.com/joshSzep/{self.id}"
-
 
 @dataclass(slots=True)
 class Link:
@@ -162,30 +158,16 @@ def build_book_cards(books: list[Book]) -> str:
         cover_image = (
             f'<img src="{escape(book.cover_name)}" alt="Cover for {escape(book.title)}" loading="lazy">'
         )
-        cover_markup = (
-            f'<a class="cover-shell cover-link" href="{escape(book.launch_url)}" aria-label="Open {escape(book.title)} launch page">{cover_image}</a>'
-            if book.published
-            else f'<div class="cover-shell">{cover_image}</div>'
-        )
-        launch_cta = (
-            f'<a class="book-link" href="{escape(book.launch_url)}">Visit launch page</a>'
-            if book.published
-            else '<span class="book-link muted">Coming soon</span>'
-        )
-        repository_cta = f'<a class="book-link secondary" href="{escape(book.repository_url)}">Source repository</a>'
+        cover_markup = f'<div class="cover-shell">{cover_image}</div>'
         cards.append(
             f"""
-            <article class=\"book-card\">
+            <a class=\"book-card\" href=\"{escape(book.launch_url)}\" aria-label=\"Open {escape(book.title)} launch page\">
                 {cover_markup}
                 <div class=\"book-meta\">
                     <h3>{escape(book.title)}</h3>
                     <div class=\"book-description\">{description_html}</div>
-                    <div class=\"book-actions\">
-                        {launch_cta}
-                        {repository_cta}
-                    </div>
                 </div>
-            </article>
+            </a>
             """.strip()
         )
     return "\n".join(cards)
