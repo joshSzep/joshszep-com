@@ -95,6 +95,12 @@
             "title": "Proof of Human",
             "published_date": "2026-05-14",
             "published": true
+        },
+        {
+            "id": "the-empty-ship",
+            "title": "The Empty Ship",
+            "published_date": "2026-06-06",
+            "published": false
         }
     ],
     "links": [
