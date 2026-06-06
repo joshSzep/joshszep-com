@@ -50,6 +50,10 @@ class Book:
     def launch_url(self) -> str:
         return f"https://{self.id}.joshszep.com"
 
+    @property
+    def github_url(self) -> str:
+        return f"https://github.com/joshSzep/{self.id}"
+
 
 @dataclass(slots=True)
 class Link:
@@ -155,16 +159,31 @@ def build_book_cards(books: list[Book]) -> str:
             "Available now on its launch page." if book.published else "A forthcoming work."
         )
         description_html = render_markdown_html(description)
+        card_url = book.launch_url if book.published else book.github_url
+        card_label = (
+            f"Open {book.title} launch page"
+            if book.published
+            else f"Open {book.title} GitHub repository"
+        )
+        card_classes = "book-card" if book.published else "book-card book-card-unpublished"
+        title_markup = f"<h3>{escape(book.title)}</h3>"
+        if not book.published:
+            title_markup = f"""
+                    <div class=\"book-meta-top\">
+                        <h3>{escape(book.title)}</h3>
+                        <p class=\"section-kicker\"><strong>Not yet published</strong> - GitHub repo</p>
+                    </div>
+            """.strip()
         cover_image = (
             f'<img src="{escape(book.cover_name)}" alt="Cover for {escape(book.title)}" loading="lazy">'
         )
         cover_markup = f'<div class="cover-shell">{cover_image}</div>'
         cards.append(
             f"""
-            <a class=\"book-card\" href=\"{escape(book.launch_url)}\" aria-label=\"Open {escape(book.title)} launch page\">
+            <a class=\"{card_classes}\" href=\"{escape(card_url)}\" aria-label=\"{escape(card_label)}\">
                 {cover_markup}
                 <div class=\"book-meta\">
-                    <h3>{escape(book.title)}</h3>
+                    {title_markup}
                     <div class=\"book-description\">{description_html}</div>
                 </div>
             </a>
