@@ -21,8 +21,6 @@ SITE_JS_PATH = ASSETS_DIR / "site.js"
 REQUIRED_ASSET_PATHS = {
     ASSETS_DIR / "hero-dark.png",
     ASSETS_DIR / "hero-gif-dark.gif",
-    ASSETS_DIR / "hero-gif-light.gif",
-    ASSETS_DIR / "hero-light.png",
     ASSETS_DIR / "icon.png",
     ASSETS_DIR / "photo.jpeg",
     SITE_CSS_PATH,
@@ -235,7 +233,6 @@ def build_header() -> str:
                     <a class=\"section-nav-link\" href=\"#profile\">Profile</a>
                     <a class=\"section-nav-link\" href=\"#links\">Links</a>
                 </nav>
-                <button class=\"theme-toggle\" type=\"button\" aria-label=\"Toggle color theme\">Theme</button>
             </div>
         </header>
     """.strip()

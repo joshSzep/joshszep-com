@@ -1,47 +1,20 @@
-const storageKey = "joshszep-theme";
 const root = document.documentElement;
-const themeToggle = document.querySelector(".theme-toggle");
 const heroVisual = document.querySelector(".hero-visual");
-const prefersLight = window.matchMedia("(prefers-color-scheme: light)");
-const heroAnimationState = {
-    dark: false,
-    light: false,
-};
+let isHeroAnimated = false;
 
-function syncHeroImage(theme) {
-    const heroImage = heroAnimationState[theme] ? `var(--hero-image-animated)` : `var(--hero-image-static)`;
+function syncHeroImage() {
+    const heroImage = isHeroAnimated ? "var(--hero-image-animated)" : "var(--hero-image-static)";
     root.style.setProperty("--hero-image", heroImage);
     if (heroVisual) {
-        heroVisual.setAttribute("aria-pressed", String(heroAnimationState[theme]));
+        heroVisual.setAttribute("aria-pressed", String(isHeroAnimated));
     }
 }
 
-function setTheme(theme) {
-    root.dataset.theme = theme;
-    themeToggle.textContent = theme === "light" ? "Light" : "Dark";
-    themeToggle.setAttribute("aria-pressed", String(theme === "light"));
-    syncHeroImage(theme);
-}
-
-const storedTheme = localStorage.getItem(storageKey);
-setTheme(storedTheme || (prefersLight.matches ? "light" : "dark"));
-
-themeToggle.addEventListener("click", () => {
-    const nextTheme = root.dataset.theme === "light" ? "dark" : "light";
-    setTheme(nextTheme);
-    localStorage.setItem(storageKey, nextTheme);
-});
+syncHeroImage();
 
 heroVisual?.addEventListener("click", () => {
-    const theme = root.dataset.theme === "light" ? "light" : "dark";
-    heroAnimationState[theme] = !heroAnimationState[theme];
-    syncHeroImage(theme);
-});
-
-prefersLight.addEventListener("change", event => {
-    if (!localStorage.getItem(storageKey)) {
-        setTheme(event.matches ? "light" : "dark");
-    }
+    isHeroAnimated = !isHeroAnimated;
+    syncHeroImage();
 });
 
 const observer = new IntersectionObserver(entries => {
