@@ -1,11 +1,9 @@
-const root = document.documentElement;
 const heroVisual = document.querySelector(".hero-visual");
 let isHeroAnimated = false;
 
 function syncHeroImage() {
-    const heroImage = isHeroAnimated ? "var(--hero-image-animated)" : "var(--hero-image-static)";
-    root.style.setProperty("--hero-image", heroImage);
     if (heroVisual) {
+        heroVisual.classList.toggle("is-animated", isHeroAnimated);
         heroVisual.setAttribute("aria-pressed", String(isHeroAnimated));
     }
 }
