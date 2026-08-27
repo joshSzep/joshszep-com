@@ -15,14 +15,12 @@ ASSETS_DIR = ROOT / "assets"
 BOOKS_DIR = ROOT / "books"
 METADATA_PATH = ROOT / "metadata.json"
 INTRODUCTION_PATH = ROOT / "INTRODUCTION.md"
-PROFILE_README_PATH = ROOT / "joshszep" / "README.md"
 SITE_CSS_PATH = ASSETS_DIR / "site.css"
 SITE_JS_PATH = ASSETS_DIR / "site.js"
 REQUIRED_ASSET_PATHS = {
     ASSETS_DIR / "hero-dark.png",
     ASSETS_DIR / "hero-gif-dark.gif",
     ASSETS_DIR / "icon.png",
-    ASSETS_DIR / "photo.jpeg",
     SITE_CSS_PATH,
     SITE_JS_PATH,
 }
@@ -106,18 +104,6 @@ def load_book_description(book_id: str) -> str:
     return description_path.read_text(encoding="utf-8").strip()
 
 
-def sanitize_profile_markdown(markdown_text: str) -> str:
-    blocked_prefixes = (
-        "📞",
-        "📧",
-        "🔗 [LinkedIn]",
-    )
-    filtered_lines = [
-        line for line in markdown_text.splitlines() if not line.strip().startswith(blocked_prefixes)
-    ]
-    return "\n".join(filtered_lines)
-
-
 def render_markdown_html(markdown_text: str) -> str:
     return markdown.markdown(markdown_text, extensions=["extra", "sane_lists"])
 
@@ -126,12 +112,6 @@ def markdown_to_plain_text(markdown_text: str) -> str:
     html = render_markdown_html(markdown_text)
     text = re.sub(r"<[^>]+>", " ", html)
     return re.sub(r"\s+", " ", unescape(text)).strip()
-
-
-def render_profile_html(markdown_text: str) -> str:
-    html = render_markdown_html(sanitize_profile_markdown(markdown_text))
-    html = re.sub(r"<hr\s*/?>", "", html)
-    return html
 
 
 def load_manifesto_html() -> str:
@@ -230,7 +210,6 @@ def build_header() -> str:
                 <nav class=\"section-nav\" aria-label=\"Primary\">
                     <a class=\"section-nav-link\" href=\"#manifesto\">Manifesto</a>
                     <a class=\"section-nav-link\" href=\"#books\">Books</a>
-                    <a class=\"section-nav-link\" href=\"#profile\">Profile</a>
                     <a class=\"section-nav-link\" href=\"#links\">Links</a>
                 </nav>
             </div>
@@ -265,30 +244,6 @@ def build_books_section(books: list[Book]) -> str:
     """.strip()
 
 
-def build_profile_section(profile_html: str) -> str:
-    return f"""
-        <section id=\"profile\">
-            <div class=\"section-heading reveal\">
-                <div>
-                    <p class=\"eyebrow\">Profile</p>
-                    <h2>Software engineering background and resume.</h2>
-                </div>
-            </div>
-            <div class=\"profile-panel reveal\">
-                <aside class=\"profile-aside\">
-                    <div class=\"portrait-frame\">
-                        <img src=\"photo.jpeg\" alt=\"Portrait of Joshua Szepietowski\" loading=\"lazy\">
-                    </div>
-                    <div class=\"profile-note\">
-                        Two decades building backend systems, teams, and delivery workflows, alongside an ongoing body of fiction.
-                    </div>
-                </aside>
-                <article class=\"profile-content\">{profile_html}</article>
-            </div>
-        </section>
-    """.strip()
-
-
 def build_links_section(links: list[Link]) -> str:
     return f"""
         <section id=\"links\">
@@ -306,19 +261,18 @@ def build_links_section(links: list[Link]) -> str:
     """.strip()
 
 
-def build_page_sections(metadata: SiteMetadata, profile_html: str) -> str:
+def build_page_sections(metadata: SiteMetadata) -> str:
     sections = [
         build_hero_section(metadata.introduction),
         build_manifesto_section(load_manifesto_html()),
         build_books_section(metadata.books),
-        build_profile_section(profile_html),
         build_links_section(metadata.links),
     ]
     return "\n\n                ".join(sections)
 
 
-def build_html(metadata: SiteMetadata, profile_html: str) -> str:
-    page_sections = build_page_sections(metadata, profile_html)
+def build_html(metadata: SiteMetadata) -> str:
+    page_sections = build_page_sections(metadata)
     meta_description = markdown_to_plain_text(metadata.introduction)
     return f"""<!DOCTYPE html>
 <html lang=\"en\">
@@ -357,10 +311,8 @@ def write_site(html: str) -> Path:
 
 def main() -> None:
     metadata = load_metadata()
-    profile_markdown = PROFILE_README_PATH.read_text(encoding="utf-8")
-    profile_html = render_profile_html(profile_markdown)
     copy_required_assets(metadata.books)
-    output_path = write_site(build_html(metadata, profile_html))
+    output_path = write_site(build_html(metadata))
     print(f"Built site at {output_path}")
 
 
