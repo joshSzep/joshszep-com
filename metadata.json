@@ -101,6 +101,12 @@
             "title": "The Empty Ship",
             "published_date": "2026-06-06",
             "published": false
+        },
+        {
+            "id": "anhedonia",
+            "title": "Anhedonia",
+            "published_date": "2026-09-19",
+            "published": true
         }
     ],
     "links": [
